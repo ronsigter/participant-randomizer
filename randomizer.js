@@ -11,7 +11,8 @@
       return {
         ok: false,
         message:
-          "Participants panel not found. Make sure it is open! " + PANEL_NOT_FOUND_HINT,
+          "Participants panel not found. Make sure it is open! " +
+          PANEL_NOT_FOUND_HINT,
       };
     }
 
@@ -41,10 +42,42 @@
     };
   }
 
+  /** If the People button exists, click it to open the Participants panel. Returns true if clicked. */
+  function tryOpenParticipantsPanel() {
+    const peopleButton = document.querySelector('button[aria-label*="People"]');
+    if (!peopleButton) return false;
+    peopleButton.click();
+    return true;
+  }
+
   chrome.runtime.onMessage.addListener((request, _sender, sendResponse) => {
-    if (request.action === "randomize") {
-      sendResponse(runRandomize());
+    if (request.action !== "randomize") {
+      return true;
     }
+
+    function doRandomize() {
+      let result = runRandomize();
+      if (
+        !result.ok &&
+        result.message.includes("Participants panel not found")
+      ) {
+        if (tryOpenParticipantsPanel()) {
+          return null; // signal: we clicked, caller should wait and retry
+        }
+      }
+      return result;
+    }
+
+    let result = doRandomize();
+    if (result !== null) {
+      sendResponse(result);
+      return true;
+    }
+
+    // Panel wasn't open; we clicked People — wait for panel then retry
+    setTimeout(() => {
+      sendResponse(runRandomize());
+    }, 700);
     return true;
   });
 })();
