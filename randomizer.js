@@ -44,8 +44,33 @@
 
   /** If the People button exists, click it to open the Participants panel. Returns true if clicked. */
   function tryOpenParticipantsPanel() {
-    const peopleButton = document.querySelector('button[aria-label*="People"]');
-    if (!peopleButton) return false;
+    let peopleButton = document.querySelector('button[aria-label*="People"]');
+
+    // If the People button doesn't exist, find it in the Call feature notifications and actions container
+    if (!peopleButton) {
+      const container = document.querySelector(
+        'div[aria-label*="Call feature notifications and actions"]'
+      );
+
+      const match = [...container.children].find((el) => {
+        const isVisible =
+          el.offsetParent !== null &&
+          getComputedStyle(el).visibility !== "hidden";
+
+        const hasPeopleSpan = !!el
+          .querySelector("span")
+          ?.textContent?.includes("People");
+
+        return isVisible || hasPeopleSpan;
+      });
+
+      peopleButton = match?.querySelector('[role="button"]');
+    }
+
+    if (!peopleButton) {
+      return false;
+    }
+
     peopleButton.click();
     return true;
   }
